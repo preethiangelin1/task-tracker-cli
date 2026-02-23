@@ -3,10 +3,13 @@ import argparse
 import json
 from datetime import datetime
 import uuid
+from rich.table import Table
+from rich.console import Console
 
 tasks = []
 TASK_FILE = "tasks.json"
 
+console = Console()
 
 parser = argparse.ArgumentParser(prog="task-cli")
 
@@ -56,19 +59,20 @@ def print_tasks(tasks):
         print("No tasks found.")
         return
 
-    print(f"{'ID':<5} {'Description':<25} {'status':<6} {'Created':<20} {'Updated':<20}")
-    print("-" * 80)
+    table = Table(title="Task Manager")
+    table.add_column('Id')
+    table.add_column('Description')
+    table.add_column('Status')
+    table.add_column("Created At")
+    table.add_column("Updated At")
 
     for task in filtered_tasks:
         created = datetime.fromisoformat(task["createdAt"]).strftime("%d %b %Y %H:%M")
         updated = datetime.fromisoformat(task["updatedAt"]).strftime("%d %b %Y %H:%M")
-
-        print(f"{task['id']:<5} "
-            f"{task['description']:<25} "
-            f"{str(task['status']):<6} "
-            f"{created:<20} "
-            f"{updated:<20}")
         
+        table.add_row(task['id'],task['description'],str(task['status']),created,updated)
+
+    console.print(table)
 
 if args.command == "add":
     # read existing tasks from tasks.json
