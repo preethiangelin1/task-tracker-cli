@@ -2,6 +2,7 @@ import os
 import argparse
 import json
 from datetime import datetime
+import uuid
 
 tasks = []
 TASK_FILE = "tasks.json"
@@ -38,6 +39,7 @@ mark_done_parser = subparsers.add_parser("mark-done",  help="Mark a task as done
 mark_done_parser.add_argument("id", help="id of the task to be marked as done" )
 
 args = parser.parse_args()
+now = datetime.now().isoformat()
 
 def load_tasks():
     if os.path.exists(TASK_FILE):
@@ -49,15 +51,33 @@ def save_tasks(tasks):
     with open(TASK_FILE, "w") as f:
         json.dump(tasks, f, indent=2)
 
+def print_tasks(tasks):
+    if not tasks:
+        print("No tasks found.")
+        return
+
+    print(f"{'ID':<5} {'Description':<25} {'status':<6} {'Created':<20} {'Updated':<20}")
+    print("-" * 80)
+
+    for task in filtered_tasks:
+        created = datetime.fromisoformat(task["createdAt"]).strftime("%d %b %Y %H:%M")
+        updated = datetime.fromisoformat(task["updatedAt"]).strftime("%d %b %Y %H:%M")
+
+        print(f"{task['id']:<5} "
+            f"{task['description']:<25} "
+            f"{str(task['status']):<6} "
+            f"{created:<20} "
+            f"{updated:<20}")
+        
+
 if args.command == "add":
     # read existing tasks from tasks.json
     tasks = load_tasks()
     
-    now = datetime.now().isoformat()
     
     # create task dict
     task = {
-        "id" : len(tasks) + 1,
+        "id" : str(uuid.uuid4()),
         "description" : args.description,
         "status" : "todo",
         "createdAt" : now,
@@ -73,40 +93,24 @@ if args.command == "add":
 elif args.command == "list":
     tasks = load_tasks()
     
-    filter_tasks = []
+    filtered_tasks = []
 
     if args.status is None:
-        filter_tasks = tasks
+        filtered_tasks = tasks
     else:
         for task in tasks:
             if task["status"] == args.status:
-                filter_tasks.append(task)
-    
+                filtered_tasks.append(task)
 
-    if not filter_tasks:
-        print("No tasks found.")
-    else:
-        print(f"{'ID':<5} {'Description':<25} {'status':<6} {'Created':<20} {'Updated':<20}")
-        print("-" * 80)
+    print_tasks(filtered_tasks)
 
-        for task in filter_tasks:
-            created = datetime.fromisoformat(task["createdAt"]).strftime("%d %b %Y %H:%M")
-            updated = datetime.fromisoformat(task["updatedAt"]).strftime("%d %b %Y %H:%M")
-
-            print(f"{task['id']:<5} "
-                f"{task['description']:<25} "
-                f"{str(task['status']):<6} "
-                f"{created:<20} "
-                f"{updated:<20}")
-
-    
-    
 elif args.command == "update":
     tasks = load_tasks()
 
     for task in tasks:
-        if task["id"] == int(args.id):
+        if task["id"] == args.id:
             task["description"] = args.description
+            task["updatedAt"] = now
     
     save_tasks(tasks)
 
@@ -136,7 +140,6 @@ elif args.command == "mark-done":
                 task["status"] = "done"
 
     save_tasks(tasks)
-
 
 else:
     parser.print_help()
